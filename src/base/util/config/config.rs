@@ -18,8 +18,9 @@ const CONFIG_PATH: &str = "config.json";
 const TARGET: &str = "target";
 const HOME: &str = "HOME";
 
-const CHECK_HOME: fn() -> Result<PathBuf, VarError> =
-    || -> Result<PathBuf, VarError> { Ok(PathBuf::from(var(HOME)?)) };
+fn check_home_var() -> Result<PathBuf, VarError> {
+    Ok(PathBuf::from(var(HOME)?))
+}
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Config {
@@ -67,7 +68,7 @@ impl Config {
     }
 
     fn check(mut self) -> Result<Self, Error> {
-        if let Ok(mut home) = CHECK_HOME() {
+        if let Ok(mut home) = check_home_var() {
             if !self.path.starts_with(&home) {
                 home.push(&self.path);
                 self.path = home;
