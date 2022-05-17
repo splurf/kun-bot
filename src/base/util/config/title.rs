@@ -1,6 +1,8 @@
-use std::fmt::Debug;
+use {serde::Deserialize, std::fmt::Debug};
 
-#[derive(Clone)]
+const DEFAULT_HONORIFIC: &str = "Kun";
+
+#[derive(Clone, Debug)]
 pub struct Title(String);
 
 impl Title {
@@ -12,17 +14,22 @@ impl Title {
 impl<S: AsRef<str>> From<S> for Title {
     fn from(s: S) -> Self {
         let mut title = s.as_ref().to_string();
+        let mut honorific = String::from(DEFAULT_HONORIFIC);
 
         if !title.is_empty() {
-            title.push('-')
+            title.push('-');
+            honorific = honorific.to_lowercase()
         }
-        title.push_str("Kun");
+        title.push_str(&honorific);
         Self(title)
     }
 }
 
-impl Debug for Title {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(format!("{:?}", self.0).as_str())
+impl<'de> Deserialize<'de> for Title {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(String::deserialize(deserializer)?.into())
     }
 }

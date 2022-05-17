@@ -4,11 +4,13 @@ use {
         collections::HashSet,
         fmt::Debug,
         fs::File,
-        io::Error,
+        io::{Error, ErrorKind},
         path::{Path, PathBuf},
     },
     {serde::Deserialize, serde_json::from_reader},
 };
+
+const CONFIG_PATH: &str = "config.json";
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Config {
@@ -17,21 +19,26 @@ pub struct Config {
     admins: Admins,
 }
 
-impl<'de> Deserialize<'de> for Title {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        Ok(String::deserialize(deserializer)?.into())
-    }
-}
-
 impl Config {
-    pub fn new<P: AsRef<Path>, S: AsRef<str>>(path: P, title: S) -> Self {
+    pub fn new<P: AsRef<Path>, S: AsRef<str>>(path: P, title: S) -> Result<Self, Error> {
         Self {
-            path: path.as_ref().to_path_buf(),
+            path: path.as_ref().into(),
             title: title.into(),
             admins: Admins::new(),
+        }
+        .check()
+    }
+
+    fn check(self) -> Result<Self, Error> {
+        let exists = self.path.exists();
+        let is_dir = self.path.is_dir();
+
+        if exists && is_dir {
+            Ok(self)
+        } else if exists {
+            Err(ErrorKind::InvalidData.into())
+        } else {
+            Err(ErrorKind::NotFound.into())
         }
     }
 
@@ -46,19 +53,10 @@ impl Config {
     pub fn admins(&self) -> &HashSet<u64> {
         self.admins.set()
     }
+
     pub fn load() -> Result<Self, Error> {
-        from_reader(File::open("config.json")?).map_err(|e| e.into())
-    }
-}
-
-impl<P: AsRef<Path>, S: AsRef<str>> From<(P, S)> for Config {
-    fn from((path, title): (P, S)) -> Self {
-        Self::new(path, title)
-    }
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self::new("images", "")
+        let result: Result<Config, Error> =
+            from_reader(File::open(CONFIG_PATH)?).map_err(Into::into);
+        result?.check()
     }
 }

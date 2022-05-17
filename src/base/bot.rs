@@ -74,12 +74,6 @@ impl Bot {
     }
 }
 
-impl Default for Bot {
-    fn default() -> Self {
-        Config::default().into()
-    }
-}
-
 #[async_trait]
 impl EventHandler for Bot {
     async fn message(&self, ctx: Context, msg: Message) {

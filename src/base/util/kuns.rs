@@ -148,12 +148,6 @@ impl Kuns {
     }
 }
 
-impl Default for Kuns {
-    fn default() -> Self {
-        Self::new(Config::new("images", ""))
-    }
-}
-
 impl From<Config> for Kuns {
     fn from(config: Config) -> Self {
         Self::new(config)
