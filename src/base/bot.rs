@@ -28,7 +28,7 @@ impl Bot {
      */
     pub async fn run(self) -> Result<()> {
         let token =
-            var("DISCORD_TOKEN").map_err(|e| IoError::new(ErrorKind::NotFound, e.to_string()))?;
+            var("KUN_BOT_TOKEN").map_err(|e| IoError::new(ErrorKind::NotFound, e.to_string()))?;
 
         Client::builder(
             token,
