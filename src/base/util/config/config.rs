@@ -2,14 +2,14 @@ use {
     super::{admins::Admins, title::Title},
     std::{
         collections::HashSet,
-        env::{current_exe, set_current_dir, var, VarError},
+        env::{current_exe, set_current_dir, var},
         fmt::Debug,
         fs::File,
         io::{
             Error,
             ErrorKind::{InvalidData, NotFound},
         },
-        path::{Path, PathBuf},
+        path::PathBuf,
     },
     {serde::Deserialize, serde_json::from_reader},
 };
@@ -17,10 +17,6 @@ use {
 const CONFIG_PATH: &str = "config.json";
 const TARGET: &str = "target";
 const HOME: &str = "HOME";
-
-fn check_home_var() -> Result<PathBuf, VarError> {
-    Ok(PathBuf::from(var(HOME)?))
-}
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Config {
@@ -30,15 +26,6 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new<P: AsRef<Path>, S: AsRef<str>>(path: P, title: S) -> Result<Self, Error> {
-        Self {
-            path: path.as_ref().into(),
-            title: title.into(),
-            admins: Admins::new(),
-        }
-        .check()
-    }
-
     pub fn load() -> Result<Self, Error> {
         let ce = current_exe()?;
         let mut iter = ce.into_iter();
@@ -64,11 +51,12 @@ impl Config {
     }
 
     pub fn admins(&self) -> &HashSet<u64> {
-        self.admins.set()
+        self.admins.as_ref()
     }
 
     fn check(mut self) -> Result<Self, Error> {
-        if let Ok(mut home) = check_home_var() {
+        if let Ok(key) = var(HOME) {
+            let mut home = PathBuf::from(key);
             if !self.path.starts_with(&home) {
                 home.push(&self.path);
                 self.path = home;
@@ -76,9 +64,8 @@ impl Config {
         }
 
         let exists = self.path.exists();
-        let is_dir = self.path.is_dir();
 
-        if exists && is_dir {
+        if exists && self.path.is_dir() {
             Ok(self)
         } else {
             Err(if exists { InvalidData } else { NotFound }.into())

@@ -1,5 +1,5 @@
 use {
-    super::{cmd::Cmd, util::ImageMut, util::Kuns as RawKuns},
+    super::{cmd::Cmd, util::ImageMut, util::Kuns},
     crate::Config,
     serenity::{
         async_trait,
@@ -18,9 +18,7 @@ use {
     },
 };
 
-pub type Kuns = Arc<RwLock<RawKuns>>;
-
-pub struct Bot(Kuns);
+pub struct Bot(Arc<RwLock<Kuns>>);
 
 impl Bot {
     /**
@@ -79,7 +77,7 @@ impl EventHandler for Bot {
     async fn message(&self, ctx: Context, msg: Message) {
         if let Some(cmds) = Cmd::from_content(msg.clone().content) {
             if let Err(e) = self.handle_command(cmds, ctx, msg).await {
-                println!("{}", e)
+                println!("{:?}", e)
             }
         }
     }

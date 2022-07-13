@@ -11,7 +11,7 @@ use {
         io::Result,
         path::PathBuf,
     },
-    tokio::fs::{read_dir, remove_file, rename},
+    tokio::fs::{read_dir, remove_file, rename, DirEntry},
 };
 
 #[derive(Debug)]
@@ -49,7 +49,7 @@ impl Kuns {
         } else {
             let count = self.count;
             self.count += 1;
-            count.into()
+            Id::new(count)
         }
     }
 
@@ -61,7 +61,7 @@ impl Kuns {
     }
 
     /**
-     * Remove the `RawImage` at the location of the key `k` if it exists then push the `Id` of that value to the list of vacancy Id's for later use
+     * Physically remove the `RawImage` at the location of the key `k` if it exists then push the `Id` of that value to the list of vacancy Id's for later use
      */
     pub async fn remove(&mut self, k: &u16) -> Option<RawImage> {
         let image = self.images.remove(k)?;
@@ -70,78 +70,79 @@ impl Kuns {
         Some(image)
     }
 
+    /**
+     * Physically rename the provided file as well as collectively adding it to the system
+     */
     async fn insert(&mut self, path: PathBuf) -> Option<RawImage> {
         let id = self.next_id();
         let file_name = id.file_name(path.extension()?);
         let new = path.with_file_name(file_name.clone());
         rename(path, new.clone()).await.ok()?;
-        self.images.insert(
-            id.clone().into(),
-            RawImage::new(new, id, self.config.title())?,
-        )
+        self.images
+            .insert(*id, RawImage::new(new, id, self.config.title())?)
+    }
+
+    /**
+     * Return a path of the provided entry if it is a valid image type and doesn't already exist within the system
+     */
+    fn check_entry(
+        images: &HashMap<u16, RawImage>,
+        de: DirEntry,
+        marks: &mut HashSet<u16>,
+    ) -> Option<PathBuf> {
+        let path = de.path();
+
+        if RawImage::is_image(path.extension()?)? && {
+            if let Some(id) = Id::from_path(&path) {
+                let key = *id;
+                if images.contains_key(&key) {
+                    marks.insert(key);
+                    false
+                } else {
+                    true
+                }
+            } else {
+                true
+            }
+        } {
+            Some(path)
+        } else {
+            None
+        }
     }
 
     /**
      * Rescan over the images directory adding any newly found images and removing any existing images that weren't found
      */
     pub async fn load(&mut self) -> Result<()> {
-        /* Any pre-existing images not marked should be removed as they no longer exist in the searched directory */
+        let mut rd = read_dir(self.config.path()).await?;
+
+        // Any pre-existing images not marked should be removed as they no longer exist in the searched directory
         let mut marks = HashSet::<u16>::default();
 
-        /* Store each valid new image as well as marking any pre-existing images in the process */
+        //  This will be where the newly found images will be stored
+        let mut new = Vec::new();
 
-        let mut rd = read_dir(self.config.path()).await?;
-        let mut entries = Vec::new();
-
+        // Store each valid new image as well as marking any pre-existing images in the process
         while let Some(de) = rd.next_entry().await? {
-            entries.push(de)
+            //  If the entry is a valid image type and doesn't exist within the system then add it to the list of new images
+            if let Some(path) = Self::check_entry(&self.images, de, &mut marks) {
+                new.push(path)
+            }
         }
 
-        let new = entries
-            .into_iter()
-            .filter_map(|de| {
-                let path = de.path();
-
-                if RawImage::is_image(path.extension()?)? && {
-                    if let Some(key) = || -> Option<u16> {
-                        Some(Id::from_str(path.file_stem()?.to_str()?)?.into())
-                    }() {
-                        if self.images.contains_key(&key) {
-                            marks.insert(key);
-                            false
-                        } else {
-                            true
-                        }
-                    } else {
-                        true
-                    }
-                } {
-                    Some(path)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<PathBuf>>();
-
-        /* Filter each already existing image then remove the leftovers */
+        // Remove any image that doesn't have a mark
         for k in self
             .images
-            .iter()
-            .filter_map(|(k, _)| {
-                if !marks.contains(k) {
-                    Some(k.clone())
-                } else {
-                    None
-                }
-            })
+            .keys()
+            .filter_map(|k| if !marks.contains(k) { Some(*k) } else { None })
             .collect::<Vec<u16>>()
         {
             //  Removing without context results in the dropping of any related messages instead of them being deleted
             self.remove(&k).await;
         }
 
-        /* Insert the new images into the database */
-
+        // Insert the new images into the database
         Ok(for path in new {
             self.insert(path).await;
         })

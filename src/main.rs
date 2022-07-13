@@ -1,4 +1,5 @@
-use kun_bot::{Bot, Config};
+mod base;
+use base::{Bot, Config};
 
 #[tokio::main]
 async fn main() {

@@ -3,12 +3,8 @@ use {serde::Deserialize, std::collections::HashSet};
 #[derive(Clone, Debug)]
 pub struct Admins(HashSet<u64>);
 
-impl Admins {
-    pub fn new() -> Self {
-        Self(HashSet::new())
-    }
-
-    pub fn set(&self) -> &HashSet<u64> {
+impl AsRef<HashSet<u64>> for Admins {
+    fn as_ref(&self) -> &HashSet<u64> {
         &self.0
     }
 }

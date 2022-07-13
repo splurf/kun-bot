@@ -13,14 +13,14 @@ default-features = false
 features = ["client", "gateway", "model", "rustls_backend"]
 
 [dependencies.tokio]
-version = "1.18.2"
+version = "1.19.2"
 default-features = false
 features = ["rt-multi-thread"]
 
 [dependencies.serde]
-version = "1.0.137"
+version = "1.0.139"
 default-features = false
 
 [dependencies.serde_json]
-version = "1.0.81"
+version = "1.0.82"
 default-features = false
