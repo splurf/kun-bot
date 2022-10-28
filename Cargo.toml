@@ -8,19 +8,11 @@ version = "0.8.5"
 default-features = false
 
 [dependencies.serenity]
-version = "0.11.2"
+version = "0.11.5"
 default-features = false
 features = ["client", "gateway", "model", "rustls_backend"]
 
 [dependencies.tokio]
-version = "1.19.2"
+version = "1.21.2"
 default-features = false
 features = ["rt-multi-thread"]
-
-[dependencies.serde]
-version = "1.0.139"
-default-features = false
-
-[dependencies.serde_json]
-version = "1.0.82"
-default-features = false

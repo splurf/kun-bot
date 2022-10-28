@@ -1,9 +1,9 @@
-mod base;
-use base::{Bot, Config};
+mod bot;
+use bot::*;
 
 #[tokio::main]
 async fn main() {
-    let bot: Bot = Config::load().expect("Failed to load configuration").into();
+    let bot = Bot::new().expect("Failed to initialize bot");
 
     if let Err(e) = bot.run().await {
         println!("{:?}", e)
