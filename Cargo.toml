@@ -10,9 +10,9 @@ default-features = false
 [dependencies.serenity]
 version = "0.11.5"
 default-features = false
-features = ["client", "gateway", "model", "rustls_backend"]
+features = ["client", "gateway", "model", "rustls_backend", "standard_framework"]
 
 [dependencies.tokio]
-version = "1.21.2"
+version = "1.25.0"
 default-features = false
 features = ["rt-multi-thread"]
