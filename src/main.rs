@@ -2,12 +2,11 @@ mod bot;
 mod res;
 
 use {
-    bot::BOT_GROUP,
-    res::Images,
+    bot::{Handler, BOT_GROUP},
+    res::{Images, MessageLink},
     serenity::{framework::StandardFramework, prelude::GatewayIntents, Client},
     std::env::var,
 };
-
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
@@ -21,12 +20,14 @@ async fn main() -> Result<(), String> {
 
     let mut client = Client::builder(token, intents)
         .framework(framework)
+        .event_handler(Handler)
         .await
         .map_err(|e| e.to_string())?;
 
     {
         let mut data = client.data.write().await;
         data.insert::<Images>(Images::get_image_files()?);
+        data.insert::<MessageLink>(Default::default());
     }
 
     if let Err(e) = client.start_autosharded().await {
