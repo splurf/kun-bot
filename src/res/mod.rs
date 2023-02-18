@@ -40,12 +40,12 @@ pub async fn delete_if_linked(ctx: &Context, msg: &MessageId) -> CommandResult {
     }
 }
 
-pub async fn link(ctx: &Context, from: &Message, to: Message) -> CommandResult {
+pub async fn link(ctx: &Context, from: MessageId, to: Message) -> CommandResult {
     let mut data = ctx.data.write().await;
     let links = data
         .get_mut::<MessageLink>()
         .ok_or("Message link map hasn't been instantiated")?;
 
-    links.insert(from.id, to);
+    links.insert(from, to);
     Ok(())
 }

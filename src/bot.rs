@@ -21,7 +21,6 @@ async fn w(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     if !args.is_empty() {
         return Err("Arguments were provided".into());
     }
-
     let response = {
         // Read from `ctx.data` then handle sending the image to the recipient's channel
         let data = ctx.data.read().await;
@@ -32,7 +31,7 @@ async fn w(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             .send_message(&ctx.http, |m| image.as_embed(m))
             .await?
     };
-    link(ctx, msg, response).await
+    link(ctx, msg.id, response).await
 }
 
 pub struct Handler;
@@ -42,9 +41,9 @@ impl EventHandler for Handler {
     async fn message_delete(
         &self,
         ctx: Context,
-        _channel_id: ChannelId,
+        _: ChannelId,
         deleted_message_id: MessageId,
-        _guild_id: Option<GuildId>,
+        _: Option<GuildId>,
     ) {
         //  Don't really care about this
         let _ = delete_if_linked(&ctx, &deleted_message_id).await;
