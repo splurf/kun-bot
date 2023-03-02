@@ -22,7 +22,7 @@ async fn w(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         return Err("Arguments were provided".into());
     }
     let response = {
-        // Read from `ctx.data` then handle sending the image to the recipient's channel
+        // read from `ctx.data` then handle sending the image to the recipient's channel
         let data = ctx.data.read().await;
         let entry = data.get::<Images>().ok_or("Images do not exist")?;
         let image = Images::choose(entry).ok_or("`Images` is empty")?;
@@ -45,7 +45,7 @@ impl EventHandler for Handler {
         deleted_message_id: MessageId,
         _: Option<GuildId>,
     ) {
-        //  Don't really care about this
+        //  don't really care about this
         let _ = delete_if_linked(&ctx, &deleted_message_id).await;
     }
 }

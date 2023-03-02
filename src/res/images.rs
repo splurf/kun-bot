@@ -2,7 +2,6 @@ use {
     rand::{seq::SliceRandom, thread_rng},
     serenity::{builder::CreateMessage, prelude::TypeMapKey, utils::Color},
     std::{
-        env::args,
         fs::read_dir,
         path::{Path, PathBuf},
     },
@@ -17,34 +16,48 @@ impl TypeMapKey for Images {
 }
 
 impl Images {
-    pub fn get_image_files() -> Result<<Self as TypeMapKey>::Value, String> {
-        let mut args = args();
+    pub fn get_images(
+        title: impl AsRef<str>,
+        paths: Vec<PathBuf>,
+    ) -> Result<<Self as TypeMapKey>::Value, String> {
+        let title = title.as_ref().to_string();
+        let mut id = 0;
 
-        let dir = args.nth(1).ok_or("Missing directory argument")?;
-        let title = args.next().get_or_insert("Kun".to_string()).clone();
+        Ok(paths
+            .into_iter()
+            .map(|dir| -> Result<_, String> {
+                let read_dir = read_dir(dir).map_err(|e| e.to_string())?;
+                let filtered = read_dir
+                    .collect::<Result<Vec<_>, _>>()
+                    .map_err(|e| e.to_string())?;
 
-        let read_dir = read_dir(dir).map_err(|e| e.to_string())?;
-        let filtered = read_dir
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| e.to_string())?;
+                const EXTENSIONS: [&'static str; 3] = ["jpg", "jpeg", "png"];
 
-        const EXTENSIONS: [&'static str; 3] = ["jpg", "jpeg", "png"];
+                Ok(filtered
+                    .into_iter()
+                    .filter_map(|de| {
+                        let path = de.path();
+                        let file_name = path.file_name()?.to_str()?.to_string();
+                        let title = title.clone();
 
-        let images = filtered.into_iter().enumerate().filter_map(|(id, de)| {
-            let path = de.path();
-            let file_name = path.file_name()?.to_str()?.to_string();
-            let title = title.clone();
-
-            EXTENSIONS
-                .contains(&path.extension()?.to_str()?)
-                .then_some(Image {
-                    file_name,
-                    title,
-                    path,
-                    id,
-                })
-        });
-        Ok(images.collect())
+                        let image =
+                            EXTENSIONS
+                                .contains(&path.extension()?.to_str()?)
+                                .then_some(Image {
+                                    file_name,
+                                    title,
+                                    path,
+                                    id,
+                                });
+                        id += 1;
+                        image
+                    })
+                    .collect::<Vec<Image>>())
+            })
+            .collect::<Result<Vec<Vec<Image>>, String>>()?
+            .into_iter()
+            .flatten()
+            .collect::<Vec<Image>>())
     }
 
     pub fn choose(images: &<Self as TypeMapKey>::Value) -> Option<&Image> {
