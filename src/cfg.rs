@@ -2,6 +2,7 @@ use {
     crate::res::{Image, Images},
     serde::Deserialize,
     serenity::{json::prelude::from_reader, prelude::TypeMapKey},
+    simple_home_dir::expand_tilde,
     std::{fs::File, io::BufReader, path::PathBuf},
 };
 
@@ -29,8 +30,15 @@ pub fn get_config() -> Result<(Vec<Image>, RawConfigCache), String> {
     }
     if paths.is_empty() {
         return Err("Missing image directory(s)".to_string());
-    }
-    let images = Images::get_images(title, paths)?;
+    };
+    let images = Images::get_images(
+        title,
+        paths
+            .into_iter()
+            .map(|p| expand_tilde(p))
+            .collect::<Option<Vec<PathBuf>>>()
+            .ok_or("Failed to expand image directory(s)")?,
+    )?;
     Ok((images, RawConfigCache { prefix }))
 }
 

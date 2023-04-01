@@ -13,6 +13,7 @@ use {
 #[tokio::main]
 async fn main() -> Result<(), String> {
     let token = var("KUN_BOT_TOKEN").expect("`KUN_BOT_TOKEN` environmental variable not found");
+    
     let (images, config) = get_config()?;
 
     let intents = GatewayIntents::MESSAGE_CONTENT | GatewayIntents::GUILD_MESSAGES;

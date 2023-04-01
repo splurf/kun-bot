@@ -3,6 +3,10 @@ name = "kun-bot"
 version = "0.1.0"
 edition = "2021"
 
+[profile.release]
+lto = "fat"
+codegen-units = 1
+
 [dependencies.rand]
 version = "0.8.5"
 default-features = false
@@ -13,11 +17,15 @@ default-features = false
 features = ["client", "gateway", "model", "rustls_backend", "standard_framework"]
 
 [dependencies.tokio]
-version = "1.26.0"
+version = "1.27.0"
 default-features = false
 features = ["rt-multi-thread"]
 
 [dependencies.serde]
-version = "1.0.152"
+version = "1.0.159"
 default-features = false
 features = ["derive"]
+
+[dependencies.simple-home-dir]
+version = "0.1.2"
+features = ["expand_tilde"]

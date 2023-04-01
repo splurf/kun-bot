@@ -12,26 +12,32 @@ use {
     },
 };
 
+const BLACKLISTED: [Option<GuildId>; 1] = [Some(GuildId(788543390886264842))];
+
 #[group]
 #[commands(w)]
 struct Bot;
 
 #[command]
 async fn w(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    if !args.is_empty() {
-        return Err("Arguments were provided".into());
-    }
-    let response = {
-        // read from `ctx.data` then handle sending the image to the recipient's channel
-        let data = ctx.data.read().await;
-        let entry = data.get::<Images>().ok_or("Images do not exist")?;
-        let image = Images::choose(entry).ok_or("`Images` is empty")?;
-
-        msg.channel_id
+    if !BLACKLISTED.contains(&msg.guild_id) {
+        if !args.is_empty() {
+            return Err("Arguments were provided".into());
+        }
+        let image = {
+            // read from `ctx.data` then handle sending the image to the recipient's channel
+            let data = ctx.data.read().await;
+            let entry = data.get::<Images>().ok_or("Images do not exist")?;
+            Images::choose(entry).ok_or("`Images` is empty")?.clone()
+        };
+        let response = msg
+            .channel_id
             .send_message(&ctx.http, |m| image.as_embed(m))
-            .await?
-    };
-    link(ctx, msg.id, response).await
+            .await?;
+        link(ctx, msg.id, response.id).await
+    } else {
+        Ok(())
+    }
 }
 
 pub struct Handler;
@@ -41,11 +47,11 @@ impl EventHandler for Handler {
     async fn message_delete(
         &self,
         ctx: Context,
-        _: ChannelId,
+        channel_id: ChannelId,
         deleted_message_id: MessageId,
         _: Option<GuildId>,
     ) {
         //  don't really care about this
-        let _ = delete_if_linked(&ctx, &deleted_message_id).await;
+        _ = delete_if_linked(&ctx, channel_id, &deleted_message_id).await;
     }
 }

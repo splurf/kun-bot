@@ -25,8 +25,8 @@ impl Images {
 
         Ok(paths
             .into_iter()
-            .map(|dir| -> Result<_, String> {
-                let read_dir = read_dir(dir).map_err(|e| e.to_string())?;
+            .map(|p| -> Result<_, String> {
+                let read_dir = read_dir(p).map_err(|e| e.to_string())?;
                 let filtered = read_dir
                     .collect::<Result<Vec<_>, _>>()
                     .map_err(|e| e.to_string())?;
@@ -65,7 +65,7 @@ impl Images {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct Image {
     file_name: String,
     title: String,
