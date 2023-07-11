@@ -7,25 +7,21 @@ edition = "2021"
 lto = "fat"
 codegen-units = 1
 
+[dependencies.clap]
+version = "4.3.11"
+default-features = false
+features = ["std", "derive", "help", "color", "usage", "error-context"]
+
 [dependencies.rand]
 version = "0.8.5"
 default-features = false
 
 [dependencies.serenity]
-version = "0.11.5"
+version = "0.11.6"
 default-features = false
 features = ["client", "gateway", "model", "rustls_backend", "standard_framework"]
 
 [dependencies.tokio]
-version = "1.27.0"
+version = "1.29.1"
 default-features = false
 features = ["rt-multi-thread"]
-
-[dependencies.serde]
-version = "1.0.159"
-default-features = false
-features = ["derive"]
-
-[dependencies.simple-home-dir]
-version = "0.1.2"
-features = ["expand_tilde"]
