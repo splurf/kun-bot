@@ -1,4 +1,5 @@
 use {
+    crate::{Error::Misc, Result},
     rand::{seq::SliceRandom, thread_rng},
     serenity::{builder::CreateMessage, prelude::TypeMapKey, utils::Color},
     std::{
@@ -7,31 +8,19 @@ use {
     },
 };
 
-const COLOR: Color = Color::from_rgb(0, 0, 0);
-
 pub struct Images;
 
-impl TypeMapKey for Images {
-    type Value = Vec<Image>;
-}
-
 impl Images {
-    pub fn get_images(
-        title: impl AsRef<str>,
-        paths: Vec<PathBuf>,
-    ) -> Result<<Self as TypeMapKey>::Value, String> {
-        let title = title.as_ref().to_string();
+    const EXTENSIONS: [&'static str; 3] = ["jpg", "jpeg", "png"];
+
+    pub fn get_images(title: String, paths: Vec<PathBuf>) -> Result<<Self as TypeMapKey>::Value> {
         let mut id = 0;
 
-        Ok(paths
+        let images = paths
             .into_iter()
-            .map(|p| -> Result<_, String> {
-                let read_dir = read_dir(p).map_err(|e| e.to_string())?;
-                let filtered = read_dir
-                    .collect::<Result<Vec<_>, _>>()
-                    .map_err(|e| e.to_string())?;
-
-                const EXTENSIONS: [&'static str; 3] = ["jpg", "jpeg", "png"];
+            .map(|p| -> Result<_> {
+                let read_dir = read_dir(p)?;
+                let filtered = read_dir.collect::<Result<Vec<_>, _>>()?;
 
                 Ok(filtered
                     .into_iter()
@@ -40,24 +29,25 @@ impl Images {
                         let file_name = path.file_name()?.to_str()?.to_string();
                         let title = title.clone();
 
-                        let image =
-                            EXTENSIONS
-                                .contains(&path.extension()?.to_str()?)
-                                .then_some(Image {
-                                    file_name,
-                                    title,
-                                    path,
-                                    id,
-                                });
+                        let image = Self::EXTENSIONS
+                            .contains(&path.extension()?.to_str()?)
+                            .then_some(Image {
+                                file_name,
+                                title,
+                                path,
+                                id,
+                            });
                         id += 1;
                         image
                     })
                     .collect::<Vec<Image>>())
             })
-            .collect::<Result<Vec<Vec<Image>>, String>>()?
+            .collect::<Result<Vec<Vec<Image>>>>()?
             .into_iter()
             .flatten()
-            .collect::<Vec<Image>>())
+            .collect::<Vec<Image>>();
+
+        (images.len() > 0).then_some(images).ok_or(Misc)
     }
 
     pub fn choose(images: &<Self as TypeMapKey>::Value) -> Option<&Image> {
@@ -65,7 +55,11 @@ impl Images {
     }
 }
 
-#[derive(Clone)]
+impl TypeMapKey for Images {
+    type Value = Vec<Image>;
+}
+
+#[derive(Clone, Debug)]
 pub struct Image {
     file_name: String,
     title: String,
@@ -74,6 +68,8 @@ pub struct Image {
 }
 
 impl Image {
+    const COLOR: Color = Color::from_rgb(0, 0, 0);
+
     fn file_name(&self) -> &str {
         &self.file_name
     }
@@ -94,7 +90,7 @@ impl Image {
         m.embed(|e| {
             e.title(self.title())
                 .attachment(self.file_name())
-                .color(COLOR)
+                .color(Self::COLOR)
                 .footer(|f| f.text(self.id()))
         })
         .add_file(self.path())

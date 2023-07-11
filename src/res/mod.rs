@@ -1,6 +1,6 @@
 mod images;
+mod whitelist;
 
-pub use images::*;
 use {
     serenity::{
         framework::standard::CommandResult,
@@ -9,6 +9,8 @@ use {
     },
     std::collections::HashMap,
 };
+
+pub use {images::*, whitelist::*};
 
 pub struct MessageLink;
 
