@@ -1,5 +1,5 @@
 use {
-    super::res::{delete_if_linked, link, Images},
+    super::res::{delete_if_linked, link, Images, Whitelist},
     serenity::{
         async_trait,
         client::Context,
@@ -12,15 +12,25 @@ use {
     },
 };
 
-const BLACKLISTED: [Option<GuildId>; 1] = [Some(GuildId(788543390886264842))];
-
 #[group]
 #[commands(w)]
 struct Bot;
 
 #[command]
 async fn w(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    if !BLACKLISTED.contains(&msg.guild_id) {
+    //  determine if the server is whitelisted
+    let whitelisted = {
+        if let Some(id) = msg.guild_id {
+            let data = ctx.data.read().await;
+
+            data.get::<Whitelist>()
+                .map_or(false, |wl| wl.contains(&id.0))
+        } else {
+            false
+        }
+    };
+
+    if whitelisted {
         if !args.is_empty() {
             return Err("Arguments were provided".into());
         }
