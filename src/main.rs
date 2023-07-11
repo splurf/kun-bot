@@ -1,43 +1,41 @@
 mod bot;
 mod cfg;
+mod err;
 mod res;
 
 use {
     bot::{Handler, BOT_GROUP},
-    cfg::{get_config, ConfigCache},
-    res::{Images, MessageLink},
+    cfg::{parse_config, ConfigCache},
+    err::*,
+    res::{Images, MessageLink, Whitelist},
     serenity::{framework::StandardFramework, prelude::GatewayIntents, Client},
     std::env::var,
 };
 
 #[tokio::main]
-async fn main() -> Result<(), String> {
-    let token = var("KUN_BOT_TOKEN").expect("`KUN_BOT_TOKEN` environmental variable not found");
-    
-    let (images, config) = get_config()?;
+async fn main() -> Result<()> {
+    let token = var("KUN_BOT_TOKEN")?;
+
+    let (images, cache, whitelist) = parse_config()?;
 
     let intents = GatewayIntents::MESSAGE_CONTENT | GatewayIntents::GUILD_MESSAGES;
 
     let framework = StandardFramework::new()
-        .configure(|c| c.prefix(config.prefix()))
+        .configure(|c| c.prefix(cache.prefix()))
         .group(&BOT_GROUP);
 
     let mut client = Client::builder(token, intents)
         .framework(framework)
         .event_handler(Handler)
-        .await
-        .map_err(|e| e.to_string())?;
+        .await?;
 
     {
         let mut data = client.data.write().await;
 
         data.insert::<Images>(images);
-        data.insert::<ConfigCache>(config);
+        data.insert::<ConfigCache>(cache);
+        data.insert::<Whitelist>(whitelist);
         data.insert::<MessageLink>(Default::default());
     }
-
-    if let Err(e) = client.start_autosharded().await {
-        eprintln!("{}", e)
-    }
-    Ok(())
+    client.start_autosharded().await.map_err(Into::into)
 }
