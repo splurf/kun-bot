@@ -5,9 +5,9 @@ mod res;
 
 use {
     bot::{Handler, BOT_GROUP},
-    cfg::{parse_config, ConfigCache},
+    cfg::parse_config,
     err::*,
-    res::{Images, MessageLink, Whitelist},
+    res::{imgs::Images, keys::*},
     serenity::{framework::StandardFramework, prelude::GatewayIntents, Client},
     std::env::var,
 };
@@ -16,7 +16,7 @@ use {
 async fn main() -> Result<()> {
     let token = var("KUN_BOT_TOKEN")?;
 
-    let (images, cache, whitelist) = parse_config()?;
+    let (images, cache, admins, whitelist) = parse_config()?;
 
     let intents = GatewayIntents::MESSAGE_CONTENT | GatewayIntents::GUILD_MESSAGES;
 
@@ -34,6 +34,7 @@ async fn main() -> Result<()> {
 
         data.insert::<Images>(images);
         data.insert::<ConfigCache>(cache);
+        data.insert::<Admins>(admins);
         data.insert::<Whitelist>(whitelist);
         data.insert::<MessageLink>(Default::default());
     }
