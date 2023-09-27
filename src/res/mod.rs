@@ -1,22 +1,16 @@
-mod images;
-mod whitelist;
+pub mod imgs;
+pub mod keys;
 
 use {
+    super::{cfg::WHITELIST_PATH, Result},
+    keys::{MessageLink, Whitelist},
     serenity::{
-        framework::standard::CommandResult,
-        model::prelude::{ChannelId, MessageId},
-        prelude::{Context, TypeMapKey},
+        framework::standard::{Args, CommandResult},
+        model::prelude::{ChannelId, GuildId, MessageId},
+        prelude::Context,
     },
-    std::collections::HashMap,
+    std::{fs::File, io::Write},
 };
-
-pub use {images::*, whitelist::*};
-
-pub struct MessageLink;
-
-impl TypeMapKey for MessageLink {
-    type Value = HashMap<MessageId, MessageId>;
-}
 
 pub async fn delete_if_linked(
     ctx: &Context,
@@ -56,4 +50,36 @@ pub async fn link(ctx: &Context, from: MessageId, to: MessageId) -> CommandResul
     links.insert(from, to);
     links.insert(to, from);
     Ok(())
+}
+
+pub fn try_into_guild_id(s: &str) -> Result<GuildId> {
+    GuildId::try_from(s.parse::<u64>()?).map_err(|_| crate::Inner::InvalidArg.into())
+}
+
+pub fn update_wl_file(whitelist: &[GuildId]) -> Result<()> {
+    let mut f = File::create(WHITELIST_PATH)?;
+
+    f.write_all(
+        whitelist
+            .iter()
+            .map(|id| id.0.to_string())
+            .collect::<Vec<String>>()
+            .join(" ")
+            .as_bytes(),
+    )?;
+    f.flush().map_err(Into::into)
+}
+
+pub async fn try_whitelist_add(ctx: &Context, args: Args) -> CommandResult {
+    let id = try_into_guild_id(args.message())?;
+
+    let mut data = ctx.data.write().await;
+    let whitelist = data.get_mut::<Whitelist>().ok_or("Whitelist is not set")?;
+
+    if whitelist.contains(&id) {
+        Err("Server is already whitelisted".into())
+    } else {
+        whitelist.push(id);
+        update_wl_file(whitelist.as_slice()).map_err(|e| e.to_string().into())
+    }
 }
