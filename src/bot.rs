@@ -1,5 +1,13 @@
 use {
-    super::res::{delete_if_linked, link, Images, Whitelist},
+    super::{
+        cfg::WHITE_CHECK_MARK,
+        res::{
+            delete_if_linked,
+            imgs::Images,
+            keys::{Admins, Whitelist},
+            link, try_whitelist_add,
+        },
+    },
     serenity::{
         async_trait,
         client::Context,
@@ -13,8 +21,24 @@ use {
 };
 
 #[group]
-#[commands(w)]
+#[commands(a, w)]
 struct Bot;
+
+#[command]
+async fn a(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let is_admin = {
+        let data = ctx.data.read().await;
+        let admins = data.get::<Admins>().ok_or("Root user is not set")?;
+        admins.contains(&msg.author.id)
+    };
+
+    if is_admin && try_whitelist_add(ctx, args).await.is_ok() {
+        msg.react(&ctx.http, WHITE_CHECK_MARK).await.map(|_| ())
+    } else {
+        msg.delete(&ctx.http).await
+    }
+    .map_err(Into::into)
+}
 
 #[command]
 async fn w(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
@@ -23,8 +47,7 @@ async fn w(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         if let Some(id) = msg.guild_id {
             let data = ctx.data.read().await;
 
-            data.get::<Whitelist>()
-                .map_or(false, |wl| wl.contains(&id.0))
+            data.get::<Whitelist>().map_or(false, |wl| wl.contains(&id))
         } else {
             false
         }
@@ -46,7 +69,7 @@ async fn w(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             .await?;
         link(ctx, msg.id, response.id).await
     } else {
-        Ok(())
+        msg.delete(&ctx.http).await.map_err(Into::into)
     }
 }
 
