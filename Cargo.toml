@@ -8,7 +8,7 @@ lto = "fat"
 codegen-units = 1
 
 [dependencies.clap]
-version = "4.3.11"
+version = "4.4.5"
 default-features = false
 features = ["std", "derive", "help", "color", "usage", "error-context"]
 
@@ -22,6 +22,6 @@ default-features = false
 features = ["client", "gateway", "model", "rustls_backend", "standard_framework"]
 
 [dependencies.tokio]
-version = "1.29.1"
+version = "1.32.0"
 default-features = false
 features = ["rt-multi-thread"]
