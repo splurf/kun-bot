@@ -1,12 +1,18 @@
 use {
     crate::{
         err::Result,
-        res::{Image, Images},
+        res::{
+            imgs::{Image, Images},
+            try_into_guild_id,
+        },
     },
     clap::Parser,
-    serenity::prelude::TypeMapKey,
-    std::path::PathBuf,
+    serenity::model::prelude::{GuildId, UserId},
+    std::{fs::File, io::Read, path::PathBuf},
 };
+
+pub const WHITELIST_PATH: &'static str = "whitelist.txt";
+pub const WHITE_CHECK_MARK: char = '\u{2705}';
 
 /// A simple Discord bot to provide randomly selected images from specified gallery(s).
 #[derive(Parser)]
@@ -21,29 +27,37 @@ struct KunBot {
     #[arg(required = true, num_args = 1..)]
     paths: Vec<PathBuf>,
 
-    #[arg(required = true, last = true, num_args = 1..)]
-    whitelist: Vec<u64>,
+    #[arg(required = true, num_args = 1.., last = true)]
+    admins: Vec<UserId>,
 }
 
-pub fn parse_config() -> Result<(Vec<Image>, RawConfigCache, Vec<u64>)> {
+pub fn parse_config() -> Result<(Vec<Image>, RawConfigCache, Vec<UserId>, Vec<GuildId>)> {
     let KunBot {
         prefix,
         title,
         paths,
-        whitelist,
+        admins,
     } = KunBot::parse();
+
+    let mut whitelist = Vec::new();
+
+    if let Ok(mut f) = File::open(WHITELIST_PATH) {
+        let mut buf = String::new();
+        f.read_to_string(&mut buf)?;
+
+        whitelist.extend(
+            buf.split_ascii_whitespace()
+                .map(try_into_guild_id)
+                .collect::<Result<Vec<GuildId>>>()?,
+        );
+    }
 
     Ok((
         Images::get_images(title, paths)?,
         RawConfigCache { prefix },
+        admins,
         whitelist,
     ))
-}
-
-pub struct ConfigCache;
-
-impl TypeMapKey for ConfigCache {
-    type Value = RawConfigCache;
 }
 
 pub struct RawConfigCache {
