@@ -14,7 +14,6 @@ use {
 pub const WHITELIST_PATH: &'static str = "whitelist.txt";
 pub const WHITE_CHECK_MARK: char = '\u{2705}';
 
-/// A simple Discord bot to provide randomly selected images from specified gallery(s).
 #[derive(Parser)]
 #[command(author, version, about)]
 struct KunBot {
