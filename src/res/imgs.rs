@@ -1,5 +1,5 @@
 use {
-    crate::{Error::Misc, Result},
+    crate::{Inner::InvalidPath, Result},
     rand::{seq::SliceRandom, thread_rng},
     serenity::{builder::CreateMessage, prelude::TypeMapKey, utils::Color},
     std::{
@@ -47,7 +47,9 @@ impl Images {
             .flatten()
             .collect::<Vec<Image>>();
 
-        (images.len() > 0).then_some(images).ok_or(Misc)
+        (images.len() > 0)
+            .then_some(images)
+            .ok_or(InvalidPath.into())
     }
 
     pub fn choose(images: &<Self as TypeMapKey>::Value) -> Option<&Image> {
