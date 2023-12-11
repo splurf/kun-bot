@@ -1,14 +1,19 @@
 mod bot;
 mod cfg;
 mod err;
-mod res;
+mod keys;
+mod link;
 
 use {
     bot::{Handler, BOT_GROUP},
     cfg::parse_config,
     err::*,
-    res::{imgs::Images, keys::*},
-    serenity::{framework::StandardFramework, prelude::GatewayIntents, Client},
+    keys::*,
+    serenity::{
+        framework::{standard::Configuration, StandardFramework},
+        prelude::GatewayIntents,
+        Client,
+    },
     std::env::var,
 };
 
@@ -16,24 +21,25 @@ use {
 async fn main() -> Result<()> {
     let token = var("KUN_BOT_TOKEN")?;
 
-    let (images, cache, admins, whitelist) = parse_config()?;
+    let (images, prefix, admins, whitelist) = parse_config().await?;
 
     let intents = GatewayIntents::MESSAGE_CONTENT | GatewayIntents::GUILD_MESSAGES;
 
-    let framework = StandardFramework::new()
-        .configure(|c| c.prefix(cache.prefix()))
-        .group(&BOT_GROUP);
+    let framework = StandardFramework::new().group(&BOT_GROUP);
+    framework.configure(Configuration::default().prefix(prefix.as_ref()));
 
     let mut client = Client::builder(token, intents)
         .framework(framework)
         .event_handler(Handler)
         .await?;
 
+    println!("Bot is running with prefix [{}]", prefix.as_ref());
+
     {
         let mut data = client.data.write().await;
 
         data.insert::<Images>(images);
-        data.insert::<ConfigCache>(cache);
+        data.insert::<Prefix>(prefix);
         data.insert::<Admins>(admins);
         data.insert::<Whitelist>(whitelist);
         data.insert::<MessageLink>(Default::default());

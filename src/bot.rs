@@ -1,12 +1,8 @@
 use {
-    super::{
+    crate::{
         cfg::WHITE_CHECK_MARK,
-        res::{
-            delete_if_linked,
-            imgs::Images,
-            keys::{Admins, Whitelist},
-            link, try_whitelist_add,
-        },
+        keys::{Admins, Images, Whitelist},
+        link::{delete_if_linked, link_messages, try_whitelist_add},
     },
     serenity::{
         async_trait,
@@ -29,10 +25,11 @@ async fn a(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let is_admin = {
         let data = ctx.data.read().await;
         let admins = data.get::<Admins>().ok_or("Root user is not set")?;
+        println!("{:?}", admins);
         admins.contains(&msg.author.id)
     };
 
-    if is_admin && try_whitelist_add(ctx, args).await.is_ok() {
+    if is_admin && try_whitelist_add(ctx, msg, args).await.is_ok() {
         msg.react(&ctx.http, WHITE_CHECK_MARK).await.map(|_| ())
     } else {
         msg.delete(&ctx.http).await
@@ -47,7 +44,8 @@ async fn w(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         if let Some(id) = msg.guild_id {
             let data = ctx.data.read().await;
 
-            data.get::<Whitelist>().map_or(false, |wl| wl.contains(&id))
+            data.get::<Whitelist>()
+                .map_or(false, |wl| wl.data().contains(&id))
         } else {
             false
         }
@@ -63,11 +61,8 @@ async fn w(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             let entry = data.get::<Images>().ok_or("Images do not exist")?;
             Images::choose(entry).ok_or("`Images` is empty")?.clone()
         };
-        let response = msg
-            .channel_id
-            .send_message(&ctx.http, |m| image.as_embed(m))
-            .await?;
-        link(ctx, msg.id, response.id).await
+        let response = msg.channel_id.send_message(&ctx.http, image).await?;
+        link_messages(ctx, msg.id, response.id).await
     } else {
         msg.delete(&ctx.http).await.map_err(Into::into)
     }
