@@ -111,7 +111,7 @@ impl Images {
             images.push(cm)
         }
 
-        (images.len() > 0)
+        (!images.is_empty())
             .then_some(images)
             .ok_or(InvalidPath.into())
     }

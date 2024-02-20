@@ -2,10 +2,7 @@ use serenity::all::Message;
 
 use {
     super::Result,
-    crate::{
-        keys::{MessageLink, Whitelist},
-        ErrorKind::InvalidArg,
-    },
+    crate::keys::{MessageLink, Whitelist},
     serenity::{
         framework::standard::{Args, CommandResult},
         model::prelude::{ChannelId, GuildId, MessageId},
@@ -25,10 +22,9 @@ pub async fn delete_if_linked(
         let links = data
             .get::<MessageLink>()
             .ok_or("Message link map hasn't been instantiated")?;
-        links
+        *links
             .get(msg)
             .ok_or("Message did not have a link to embed")?
-            .clone()
     };
     ctx.http.delete_message(channel_id, link_id, None).await?;
     {
@@ -55,7 +51,7 @@ pub async fn link_messages(ctx: &Context, from: MessageId, to: MessageId) -> Com
 }
 
 pub fn try_into_guild_id(s: &str) -> Result<GuildId> {
-    GuildId::try_from(s.parse::<u64>()?).map_err(|_| InvalidArg.into())
+    s.parse::<u64>().map(GuildId::from).map_err(Into::into)
 }
 
 pub fn update_wl_file(whitelist: &Whitelist) -> Result<()> {
