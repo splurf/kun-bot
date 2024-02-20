@@ -1,9 +1,8 @@
-use serenity::all::Message;
-
 use {
     super::Result,
     crate::keys::{MessageLink, Whitelist},
     serenity::{
+        all::Message,
         framework::standard::{Args, CommandResult},
         model::prelude::{ChannelId, GuildId, MessageId},
         prelude::Context,
